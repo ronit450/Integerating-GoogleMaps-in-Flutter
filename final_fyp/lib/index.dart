@@ -1,103 +1,116 @@
-// ignore_for_file: import_of_legacy_library_into_null_safe
-
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
-import 'package:google_maps_webservice/places.dart';
+import 'package:geocoding/geocoding.dart';
 
-const kGoogleApiKey = 'AIzaSyAT8pCVh8o7Q9IoYxBRJ7WJ3ndmw1NZCAk';
-GoogleMapsPlaces _places = GoogleMapsPlaces(apiKey: kGoogleApiKey);
-
-void main() => runApp(MyApp());
-
-class MyApp extends StatefulWidget {
-  @override
-  _MyAppState createState() => _MyAppState();
+void main() {
+  runApp(MyApp());
 }
 
-class _MyAppState extends State<MyApp> {
-  late GoogleMapController _mapController ;
-  final TextEditingController _searchController = TextEditingController();
-  LatLng _center = const LatLng(45.521563, -122.677433);
-  List<PlacesSearchResult> _placesList = [];
+class MyApp extends StatefulWidget {
+  final String title = 'Ragni FYP';
+
+  @override
+  State<MyApp> createState() => MyAppState();
+}
+
+class MyAppState extends State<MyApp> {
+  late GoogleMapController mapController;
+  String searchQuery = '';
+
+  final LatLng _center = const LatLng(37.7749, -122.4194);
 
   void _onMapCreated(GoogleMapController controller) {
-    _mapController = controller;
+    mapController = controller;
   }
 
-  Future<void> _searchPlace(String query) async {
-    final location = Location(_center.latitude, _center.longitude);
-    final result = await _places.searchByText(query, location: location);
-
-    if (result.status == 'OK') {
-      setState(() {
-        _placesList = result.results;
-      });
-    } else {
-      print('Error: ${result.errorMessage}');
-    }
+  void _onSearch(String query) async {
+    List<Location> locations = await locationFromAddress(query);
+    Location location = locations.first;
+    mapController.animateCamera(CameraUpdate.newCameraPosition(CameraPosition(
+        target: LatLng(location.latitude, location.longitude), zoom: 15.0)));
+    setState(() {
+      searchQuery = query;
+    });
   }
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      title: widget.title,
       home: Scaffold(
         appBar: AppBar(
-          title: TextField(
-            controller: _searchController,
-            decoration: InputDecoration(
-              hintText: 'Search',
-              border: InputBorder.none,
-              contentPadding: const EdgeInsets.symmetric(horizontal: 15),
-            ),
-            onSubmitted: (value) {
-              _searchPlace(value);
-            },
-          ),
+          title: Text(widget.title),
+          backgroundColor: Colors.green[700],
         ),
-        body: Column(
+        body: Stack(
           children: [
-            Expanded(
-              child: GoogleMap(
-                onMapCreated: _onMapCreated,
-                initialCameraPosition: CameraPosition(
-                  target: _center,
-                  zoom: 11.0,
-                ),
-                markers: Set<Marker>.of(_placesList.map((place) {
-                  final marker = Marker(
-                    markerId: MarkerId(place.id),
-                    position: LatLng(
-                      place.geometry.location.lat,
-                      place.geometry.location.lng,
-                    ),
-                    infoWindow: InfoWindow(
-                      title: place.name,
-                      snippet: place.formattedAddress,
-                    ),
-                  );
-                  _mapController.showMarkerInfoWindow(marker.markerId);
-                  return marker;
-                })),
+            GoogleMap(
+              onMapCreated: _onMapCreated,
+              initialCameraPosition: CameraPosition(
+                target: _center,
+                zoom: 11.0,
               ),
             ),
-            Expanded(
-              child: ListView.builder(
-                itemCount: _placesList.length,
-                itemBuilder: (BuildContext context, int index) {
-                  final place = _placesList[index];
-                  return ListTile(
-                    title: Text(place.name),
-                    subtitle: Text(place.formattedAddress),
-                    onTap: () {
-                      final LatLng position = LatLng(
-                        place.geometry.location.lat,
-                        place.geometry.location.lng,
-                      );
-                      _mapController
-                          .animateCamera(CameraUpdate.newLatLng(position));
-                    },
-                  );
-                },
+            Positioned(
+              top: 50.0,
+              left: 10.0,
+              right: 10.0,
+              child: Container(
+                height: 50.0,
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(10.0),
+                  color: Colors.white,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.1),
+                      blurRadius: 5.0,
+                      spreadRadius: 1.0,
+                      offset: const Offset(0.0, 0.0),
+                    ),
+                  ],
+                ),
+                child: Row(
+                  children: [
+                    const SizedBox(width: 10.0),
+                    const Icon(Icons.search, color: Colors.grey),
+                    const SizedBox(width: 10.0),
+                    Expanded(
+                      child: TextField(
+                        decoration: const InputDecoration(
+                          hintText: 'Search for a location',
+                          border: InputBorder.none,
+                        ),
+                        onChanged: (value) {
+                          setState(() {
+                            searchQuery = value;
+                          });
+                        },
+                        onSubmitted: _onSearch,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            Positioned(
+              bottom: 10.0,
+              left: 10.0,
+              child: Container(
+                padding: const EdgeInsets.all(10.0),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(10.0),
+                  color: Colors.white,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.1),
+                      blurRadius: 5.0,
+                      spreadRadius: 1.0,
+                      offset: const Offset(0.0, 0.0),
+                    ),
+                  ],
+                ),
+                child: Text(searchQuery),
               ),
             ),
           ],
