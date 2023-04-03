@@ -18,7 +18,7 @@ class MyAppState extends State<MyApp> {
   String searchQuery = '';
   List<Location> searchResults = [];
 
-  final LatLng _center = const LatLng(37.7749, -122.4194);
+  final LatLng _center = const LatLng(24.8270, 67.0251);
 
   void _onMapCreated(GoogleMapController controller) {
     mapController = controller;
