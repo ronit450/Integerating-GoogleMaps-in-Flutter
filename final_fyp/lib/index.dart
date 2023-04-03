@@ -16,6 +16,7 @@ class MyApp extends StatefulWidget {
 class MyAppState extends State<MyApp> {
   late GoogleMapController mapController;
   String searchQuery = '';
+  List<Location> searchResults = [];
 
   final LatLng _center = const LatLng(37.7749, -122.4194);
 
@@ -25,12 +26,16 @@ class MyAppState extends State<MyApp> {
 
   void _onSearch(String query) async {
     List<Location> locations = await locationFromAddress(query);
-    Location location = locations.first;
-    mapController.animateCamera(CameraUpdate.newCameraPosition(CameraPosition(
-        target: LatLng(location.latitude, location.longitude), zoom: 15.0)));
-    setState(() {
-      searchQuery = query;
-    });
+    if (locations.isNotEmpty) {
+      Location location = locations.first;
+      mapController.animateCamera(CameraUpdate.newCameraPosition(
+          CameraPosition(target: LatLng(location.latitude, location.longitude), zoom: 15.0)));
+
+      setState(() {
+        searchQuery = query;
+        searchResults = locations;
+      });
+    }
   }
 
   @override
@@ -93,24 +98,48 @@ class MyAppState extends State<MyApp> {
                 ),
               ),
             ),
-            Positioned(
-              bottom: 10.0,
-              left: 10.0,
-              child: Container(
-                padding: const EdgeInsets.all(10.0),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(10.0),
-                  color: Colors.white,
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.1),
-                      blurRadius: 5.0,
-                      spreadRadius: 1.0,
-                      offset: const Offset(0.0, 0.0),
-                    ),
-                  ],
+            if (searchResults.isNotEmpty)
+              Positioned(
+                bottom: 10.0,
+                left: 10.0,
+                child: Container(
+                  height: 200.0,
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(10.0),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(10.0),
+                    color: Colors.white,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.1),
+                        blurRadius: 5.0,
+                        spreadRadius: 1.0,
+                        offset: const Offset(0.0, 0.0),
+                      ),
+                    ],
+                  ),
+                  child: ListView.builder(
+                    itemCount: searchResults.length,
+                    itemBuilder: (context, index) {
+                      return ListTile(
+                        // title: Text(searchResults[index].formattedAddress ?? ''),
+                        onTap: () async {
+                        final location = searchResults[index];
+                        mapController.animateCamera(
+                          CameraUpdate.newCameraPosition(
+                            CameraPosition(
+                              target: LatLng(location.latitude, location.longitude),
+                              zoom: 15.0,
+                            ),
+                          ),
+                        );
+                        setState(() {
+                          searchResults = [];
+                        });
+                      },
+                    );
+                  },
                 ),
-                child: Text(searchQuery),
               ),
             ),
           ],
@@ -119,3 +148,5 @@ class MyAppState extends State<MyApp> {
     );
   }
 }
+
+
